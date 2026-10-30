@@ -1,0 +1,167 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Player {
+  id           String           @id @default(cuid())
+  externalId   String?          @unique
+  slug         String           @unique
+  name         String
+  rating       Int
+  position     String
+  positions    String[]
+  nation       String?
+  nationCode   String?
+  club         String?
+  league       String?
+  preferredFoot String?
+  weakFoot     Int?
+  skillMoves   Int?
+  pace         Int?
+  shooting     Int?
+  passing      Int?
+  dribbling    Int?
+  defending    Int?
+  physical     Int?
+  metaScore    Float?
+  playstyles   String[]         @default([])
+  cardType     String?
+  imageUrl     String?
+  stats        Json?
+  prices       PlayerPrice[]
+  watchlists   WatchlistItem[]
+  squadSlots   SquadSlot[]
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@index([rating, position])
+  @@index([name])
+}
+
+model PlayerPrice {
+  id         String   @id @default(cuid())
+  playerId   String
+  platform   String
+  currency   String   @default("coins")
+  price      BigInt
+  volume     Int?
+  recordedAt DateTime @default(now())
+  player     Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId, platform, recordedAt])
+}
+
+model SBC {
+  id           String        @id @default(cuid())
+  externalId   String?       @unique
+  slug         String        @unique
+  name         String
+  category     String
+  description  String?
+  requirements Json?
+  rewards      Json?
+  expiresAt    DateTime?
+  active       Boolean       @default(true)
+  solutions    SBCSolution[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([active, expiresAt])
+}
+
+model SBCSolution {
+  id        String   @id @default(cuid())
+  sbcId     String
+  authorId  String?
+  totalCost BigInt?
+  squad     Json
+  verified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  sbc       SBC      @relation(fields: [sbcId], references: [id], onDelete: Cascade)
+
+  @@index([sbcId, totalCost])
+}
+
+model Evolution {
+  id           String   @id @default(cuid())
+  externalId   String?  @unique
+  slug         String   @unique
+  name         String
+  description  String?
+  requirements Json?
+  upgrades     Json?
+  startsAt     DateTime?
+  expiresAt    DateTime?
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([active, expiresAt])
+}
+
+model UserProfile {
+  id          String          @id @default(cuid())
+  authUserId  String          @unique
+  username    String?         @unique
+  displayName String?
+  role        String          @default("USER")
+  watchlist   WatchlistItem[]
+  squads      Squad[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model WatchlistItem {
+  id        String      @id @default(cuid())
+  userId    String
+  playerId  String
+  createdAt DateTime    @default(now())
+  user      UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  player    Player      @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, playerId])
+}
+
+model Squad {
+  id         String      @id @default(cuid())
+  userId     String
+  name       String
+  formation  String
+  isPublic   Boolean     @default(false)
+  shareToken String?     @unique
+  slots      SquadSlot[]
+  user       UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@index([userId, updatedAt])
+}
+
+model SquadSlot {
+  id        String  @id @default(cuid())
+  squadId   String
+  playerId  String?
+  position  String
+  slotIndex Int
+  squad     Squad   @relation(fields: [squadId], references: [id], onDelete: Cascade)
+  player    Player? @relation(fields: [playerId], references: [id], onDelete: SetNull)
+
+  @@unique([squadId, slotIndex])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  action     String
+  entityType String
+  entityId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId, createdAt])
+}
